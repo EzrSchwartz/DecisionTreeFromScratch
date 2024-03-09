@@ -1,10 +1,9 @@
 import pandas as pd
 import numpy as np
 
-columns = ['sepal_length','sepal_width','petal_length','petal_width','type']
-
-df = pd.read_csv("iris.csv",skiprows= 0, header=None,names=columns)
-print(df)
+col_names = ['sepal_length', 'sepal_width', 'petal_length', 'petal_width', 'type']
+data = pd.read_csv("iris.csv", skiprows=1, header=None, names=col_names)
+data.head(10)
 
 
 class Node():
@@ -20,7 +19,7 @@ class Node():
         # Leaf Node
         self.value = value
 
-
+#
 class DecisionTreeClassifier():
     def __init__(self,min_samples_split=2, max_depth=2):
 
@@ -81,7 +80,7 @@ class DecisionTreeClassifier():
         weight_r = len(r_child)/len(parent)
 
         if mode == "gini":
-            gain = self.gini(parent)-(weight_l*self.gini(l_child)+weight_r*self.gini(r_child))
+            gain = self.gini_index(parent)-(weight_l*self.gini_index(l_child)+weight_r*self.gini_index(r_child))
 
         else:
             gain = self.entropy(parent)-(weight_l*self.entropy(l_child)+weight_r*self.entropy(r_child))
@@ -97,16 +96,6 @@ class DecisionTreeClassifier():
             entropy+=-p_cls*np.log2(p_cls)
 
         return entropy
-
-    def gini(self,y):
-        class_labels = np.unique(y)
-        gini = 0
-        for cls in class_labels:
-            p_cls = len(y[y == cls])/len(y)
-
-            gini+=-p_cls**2
-
-        return 1-gini
 
     def calculate_leaf_value(self,Y):
 
@@ -152,14 +141,84 @@ class DecisionTreeClassifier():
         return preditions
 
 
+    def entropy(self, y):
+        ''' function to compute entropy '''
+
+        class_labels = np.unique(y)
+        entropy = 0
+        for cls in class_labels:
+            p_cls = len(y[y == cls]) / len(y)
+            entropy += -p_cls * np.log2(p_cls)
+        return entropy
+
+    def gini_index(self, y):
+        ''' function to compute gini index '''
+
+        class_labels = np.unique(y)
+        gini = 0
+        for cls in class_labels:
+            p_cls = len(y[y == cls]) / len(y)
+            gini += p_cls ** 2
+        return 1 - gini
+
+    def print_tree(self, tree=None, indent=" "):
+        ''' function to print the tree '''
+
+        if not tree:
+            tree = self.root
+
+        if tree.value is not None:
+            print(tree.value)
+
+        else:
+            print("X_" + str(tree.feature_index), "<=", tree.threshold, "?", tree.info_gain)
+            print("%sleft:" % (indent), end="")
+            self.print_tree(tree.left, indent + indent)
+            print("%sright:" % (indent), end="")
+            self.print_tree(tree.right, indent + indent)
+
+    def fit(self, X, Y):
+        ''' function to train the tree '''
+
+        dataset = np.concatenate((X, Y), axis=1)
+        self.root = self.build_tree(dataset)
+
+    def predict(self, X):
+        ''' function to predict new dataset '''
+
+        preditions = [self.make_prediction(x, self.root) for x in X]
+        return preditions
+
+    def make_prediction(self, x, tree):
+        ''' function to predict a single data point '''
+
+        if tree.value != None: return tree.value
+        feature_val = x[tree.feature_index]
+        if feature_val <= tree.threshold:
+            return self.make_prediction(x, tree.left)
+        else:
+            return self.make_prediction(x, tree.right)
+#
+
+#
+# X = df.iloc[:, :-1].values
+# Y = df.iloc[:, -1].values.reshape(-1,1)
+# from sklearn.model_selection import train_test_split
+# X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=.2, random_state=11)
+#
+#
+# regressor = DecisionTreeClassifier(min_samples_split=2, max_depth=10)
+# regressor.fit(X_train,Y_train)
+# regressor.print_tree()
 
 
-X = df.iloc[:, :-1].values
-Y = df.iloc[:, -1].values.reshape(-1,1)
+X = data.iloc[:, :-1].values
+Y = data.iloc[:, -1].values.reshape(-1,1)
 from sklearn.model_selection import train_test_split
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=1, random_state=11)
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=.2, random_state=41)
 
 
-regressor = DecisionTreeClassifier(min_samples_split=3, max_depth=10)
-regressor.fit(X_train,Y_train)
-regressor.print_tree()
+
+classifier = DecisionTreeClassifier(min_samples_split=1, max_depth=10)
+classifier.fit(X_train,Y_train)
+classifier.print_tree()
